@@ -1,0 +1,8 @@
+---
+
+service_container_description: "This is nginx docker service"
+service_container_name: nginx
+service_container_image: nginx:latest
+
+nginx_password: D3f4u1tp455w0rd
+secret_salt: Ad928347z$d024

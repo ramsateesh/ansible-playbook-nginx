@@ -1,0 +1,21 @@
+[Unit]
+Description={{ service_container_description }}
+After=docker.service
+Requires=docker.service
+
+[Service]
+TimeoutStartSec=0
+Restart=always
+ExecStartPre=-/usr/bin/docker stop {{ service_container_name }}
+ExecStartPre=-/usr/bin/docker rm {{ service_container_name }}
+ExecStartPre=-/usr/bin/docker pull {{ service_container_image }}
+ExecStart=/usr/bin/docker run -t \
+    -p 80:80 \
+    -v /opt/nginx/conf.d:/etc/nginx/conf.d \
+    --restart=unless-stopped \
+    --name {{ service_container_name }} {{ service_container_image }}
+ExecStop=-/usr/bin/docker stop -t 3 {{ service_container_name }}
+ExecStop=-/usr/bin/docker rm {{ service_container_name }}
+
+[Install]
+WantedBy=multi-user.target

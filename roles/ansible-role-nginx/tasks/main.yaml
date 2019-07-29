@@ -1,0 +1,86 @@
+---
+
+# Modify root user 
+- name: Secure root user
+  user:
+    name: root
+    uid: 0
+    group: root
+    shell: /sbin/nologin
+  become: yes
+
+- name: Create nginx group
+  group:
+    name: nginx
+  become: yes
+
+# Create nginx User
+- name: Create nginx user
+  user:
+    name: nginx
+    group: nginx
+    uid: 101
+    shell: /bin/bash
+    password: "{{ nginx_password | password_hash('sha512', secret_salt ) }}"
+  become: yes
+
+# secure /opt/nginx so that only nginx user can access these folders
+- name: Create nginx directory in /opt and restrict access
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0750'
+    owner: nginx
+    group: nginx
+  loop:
+    - /opt/nginx
+    - /opt/nginx/conf.d
+  become: yes
+
+- name: upgrade all packages
+  yum:
+    name: '*'
+    state: latest
+  become: yes
+
+- name: Install Docker
+  yum:
+    name: docker
+    state: present
+  become: yes
+
+- name: Start Docker
+  service:
+    name: docker
+    state: started
+    enabled: yes
+  become: yes
+
+- name: create service file
+  template:
+    dest: "/etc/systemd/system/{{ service_container_name }}.service"
+    src: "templates/etc/systemd/system/service.j2"
+    mode: '0644'
+    owner: nginx
+    group: nginx
+  become: yes
+
+- name: create nginx proxy file
+  template:
+    dest: "/opt/nginx/conf.d/default.conf"
+    src: "templates/etc/nginx/conf.d/default.j2"
+    mode: '0644'
+    owner: nginx
+    group: nginx
+  become: yes
+
+- name: reload daemon
+  shell: systemctl daemon-reload
+  become: yes
+
+- name: enable and start service
+  service:
+    name: "{{ service_container_name }}"
+    state: restarted
+    enabled: yes
+  become: yes
